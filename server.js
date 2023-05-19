@@ -68,7 +68,7 @@ app.post('/webhooks/messageHandler', (req, res) => {
 						channel.send(`${data.state} - ${b.sequenceNumber} - ${b.text}`).then((result) => {
 							console.log(data.message);
 							e.data['sequenceNumber'] = b.sequenceNumber;
-							addMessage(111, result.id, e.data);
+							addMessage(e.data.organization.id, result.id, e.data);
 						});
 					});
 				break;

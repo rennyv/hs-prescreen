@@ -1,18 +1,20 @@
 const config = require('../config.json');
 const { Events } = require('discord.js');
 const { rejectMessage } = require('../utils/hootsuite');
-const { hasMesssage, removeMessage } = require('../utils/discord');
+const { hasMesssage, removeMessage, getMessage } = require('../utils/discord');
 
 
 module.exports = {
-	name: Events.MessageReactionAdd,
+	name: Events.MessageCreate,
 	once: false,
 	execute(message) {
 		if (message.reference) {
+			console.log('message:', message);
 			message.fetchReference().then((m) => {
-				if (hasMesssage(111, m.id)) {
-					rejectMessage(m.id, message.content);
-					removeMessage(111, m.id);
+				const orgId = config.CHANNEL_ORG[m.channelId];
+				if (hasMesssage(orgId, m.id)) {
+					rejectMessage(getMessage(orgId, m.id), message.content);
+					removeMessage(orgId, m.id);
 					m.react(config.EMOJI.reject);
 				}
 			});
