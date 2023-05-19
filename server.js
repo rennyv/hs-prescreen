@@ -4,9 +4,9 @@ const request = require('request');
 const fs = require('node:fs');
 const path = require('node:path');
 const config = require('./config.json');
-const { Client, GatewayIntentBits, Events } = require('discord.js');
-const { approveMessage, rejectMessage, getToken } = require('./utils/hootsuite');
-const { getMessage, hasMesssage, addMessage, removeMessage } = require('./utils/discord');
+const { Client, GatewayIntentBits } = require('discord.js');
+const { getToken } = require('./utils/hootsuite');
+const { addMessage } = require('./utils/discord');
 
 const client = new Client({ intents: [
 	GatewayIntentBits.Guilds,
@@ -41,38 +41,6 @@ app.use(bodyParser.json());
 
 app.get('/', (req, res) => {
 	res.send('Hello from prescreener');
-});
-
-// We'll call it 'reaction' for short, but it is actually a 'MessageReaction' object
-client.on(Events.MessageReactionAdd, (reaction, user) => {
-	if (!user) { console.log('Empty user'); }
-	const message = reaction.message, emoji = reaction.emoji;
-	if (hasMesssage(111, message.id)) {
-		switch (emoji.name) {
-		case config.EMOJI.approved:
-			approveMessage(getMessage(111, message.id));
-			removeMessage(111, message.id);
-			break;
-		case config.EMOJI.reject:
-			rejectMessage(getMessage(111, message.id));
-			removeMessage(111, message.id);
-			break;
-		default:
-			console.log(emoji);
-		}
-	}
-});
-
-client.on(Events.MessageCreate, (message) => {
-	if (message.reference) {
-		message.fetchReference().then((m) => {
-			if (hasMesssage(111, m.id)) {
-				rejectMessage(m.id, message.content);
-				removeMessage(111, m.id);
-				m.react(config.EMOJI.reject);
-			}
-		});
-	}
 });
 
 app.post('/webhooks/messageHandler', (req, res) => {
