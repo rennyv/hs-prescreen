@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const request = require('request');
 
 const {Client, GatewayIntentBits, Events} = require("discord.js");
 const config = require("./config.json");
@@ -55,22 +56,58 @@ client.on(Events.MessageCreate, (message) => {
               }
           });
         }
-
-
-
 });
 
-function rejectMessage(message, reason){
-  console.log(`Rejected: ${reason}`, message)
+currentToken = null;
+
+request.post(config.BASE_URL + '/oauth2/token', {
+          auth: {'user': config.CLIENT_ID, 'pass': config.CLIENT_SECRET, 'sendImmediately': true}, 
+          form: {grant_type:'organization_app', organization_id: "1963819", }
+        }, 
+      function (error, response, body) {
+        if(error) {console.error('error:', error);} 
+        if(response && response.statusCode===200){
+          b = JSON.parse(body);
+          currentToken = b.access_token;
+          console.log("access_token: ", currentToken)
+        }
+});
+
+function rejectMessage(messageInfo, reason){
+  console.log(`Rejected: ${reason}`, messageInfo)
+  body = {'sequenceNumber': messageInfo.sequenceNumber};
+  if(reason){
+    body["reason"]=reason;
+  }
+  request.post(config.BASE_URL + '/v1/messages/' + messageInfo.message.id + '/reject', 
+  {'auth': {
+            'bearer': currentToken              
+          },
+    'body': JSON.stringify(body)
+  }, function(error, resp, body){
+      if(error) {console.error('error:', error);}
+      console.log(`Rejected!`, messageInfo)
+  })
 }
 
-function approveMessage(message){
-  console.log(`Approved: ${reason}`, message)
+function approveMessage(messageInfo){
+  
+  console.log(messageInfo.message)
+  request.post(config.BASE_URL + '/v1/messages/' + messageInfo.message.id + '/approve', 
+  {'auth': {
+            'bearer': currentToken              
+          },
+    'body': JSON.stringify({'sequenceNumber': messageInfo.sequenceNumber})
+  }, function(error, resp, body){
+      if(error) {console.error('error:', error);}
+      console.log(`Approved!`, messageInfo)
+  })
 }
 
 app.post('/webhooks/messageHandler', (req, res) => {
   const body = req.body;
-  let channel = client.channels.cache.get('1107786246564102304');
+  console.log(body)
+  let channel = client.channels.cache.get(config.DISCORD_CHANNEL);
   if(body.constructor === Array){
     for(let e of body){
       switch(e.type) {
@@ -79,9 +116,20 @@ app.post('/webhooks/messageHandler', (req, res) => {
           break;
         case 'com.hootsuite.messages.event.v1':
           let {state, organization, message} = e.data;
-          channel.send(`message event! ${organization.id}-${state}-${message.id}`).then((result) => {
-            validMessages[result.id] = e.data;
-          });
+          request(config.BASE_URL + '/v1/messages/' + message.id, 
+            {'auth': {
+              'bearer': currentToken              
+            }}, function(error, resp, body){
+              if(error) {console.error('error:', error);} 
+              b = JSON.parse(body).data[0]
+              channel.send(`${state} - ${b.sequenceNumber} - ${b.text}`).then((result) => {
+                console.log(message)
+                e.data["sequenceNumber"] = b.sequenceNumber;
+                validMessages[result.id] = e.data;
+                console.log("validMessages: ", validMessages)
+              });
+            })
+          
           break;
         default:
           console.log(`Unknown type: ${e.type}`)
