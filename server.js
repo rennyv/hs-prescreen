@@ -6,6 +6,7 @@ const path = require('node:path');
 const config = require('./config.json');
 const { Client, GatewayIntentBits, Events } = require('discord.js');
 const { approveMessage, rejectMessage, getToken } = require('./utils/hootsuite');
+const { getMessage, hasMesssage, addMessage, removeMessage } = require('./utils/discord');
 
 const client = new Client({ intents: [
 	GatewayIntentBits.Guilds,
@@ -35,10 +36,6 @@ client.login(config.BOT_TOKEN);
 const app = express();
 const port = 3000;
 
-const validMessages = {};
-const approvedEmoji = '✅';
-const rejectEmoji = '❌';
-
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
@@ -50,15 +47,15 @@ app.get('/', (req, res) => {
 client.on(Events.MessageReactionAdd, (reaction, user) => {
 	if (!user) { console.log('Empty user'); }
 	const message = reaction.message, emoji = reaction.emoji;
-	if (message.id in validMessages) {
+	if (hasMesssage(111, message.id)) {
 		switch (emoji.name) {
-		case approvedEmoji:
-			approveMessage(validMessages[message.id]);
-			delete validMessages[message.id];
+		case config.EMOJI.approved:
+			approveMessage(getMessage(111, message.id));
+			removeMessage(111, message.id);
 			break;
-		case rejectEmoji:
-			rejectMessage(validMessages[message.id], '');
-			delete validMessages[message.id];
+		case config.EMOJI.reject:
+			rejectMessage(getMessage(111, message.id));
+			removeMessage(111, message.id);
 			break;
 		default:
 			console.log(emoji);
@@ -69,10 +66,10 @@ client.on(Events.MessageReactionAdd, (reaction, user) => {
 client.on(Events.MessageCreate, (message) => {
 	if (message.reference) {
 		message.fetchReference().then((m) => {
-			if (m.id in validMessages) {
-				rejectMessage(validMessages[m.id], message.content);
-				delete validMessages[m.id];
-				m.react(rejectEmoji);
+			if (hasMesssage(111, m.id)) {
+				rejectMessage(m.id, message.content);
+				removeMessage(111, m.id);
+				m.react(config.EMOJI.reject);
 			}
 		});
 	}
@@ -103,8 +100,7 @@ app.post('/webhooks/messageHandler', (req, res) => {
 						channel.send(`${data.state} - ${b.sequenceNumber} - ${b.text}`).then((result) => {
 							console.log(data.message);
 							e.data['sequenceNumber'] = b.sequenceNumber;
-							validMessages[result.id] = e.data;
-							console.log('validMessages: ', validMessages);
+							addMessage(111, result.id, e.data);
 						});
 					});
 				break;
