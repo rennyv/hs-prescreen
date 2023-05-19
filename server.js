@@ -3,15 +3,17 @@ const bodyParser = require('body-parser');
 const request = require('request');
 const fs = require('node:fs');
 const path = require('node:path');
-
-const { Client, GatewayIntentBits, Events } = require('discord.js');
 const config = require('./config.json');
+const { Client, GatewayIntentBits, Events } = require('discord.js');
+const { approveMessage, rejectMessage, getToken } = require('./utils/hootsuite');
+
 const client = new Client({ intents: [
 	GatewayIntentBits.Guilds,
 	GatewayIntentBits.GuildMessages,
 	GatewayIntentBits.GuildMessageReactions,
 ] });
 
+// Load Discord events
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
@@ -26,8 +28,10 @@ for (const file of eventFiles) {
 	}
 }
 
+// Login to Discord
 client.login(config.BOT_TOKEN);
 
+// set-up express
 const app = express();
 const port = 3000;
 
@@ -74,60 +78,6 @@ client.on(Events.MessageCreate, (message) => {
 	}
 });
 
-let currentToken = null;
-
-request.post(config.BASE_URL + '/oauth2/token', {
-	auth: { 'user': config.CLIENT_ID, 'pass': config.CLIENT_SECRET, 'sendImmediately': true },
-	form: { grant_type:'organization_app', organization_id: '1963819' },
-}, function(error, response, body) {
-	if (error) {console.error('error:', error);}
-	if (response && response.statusCode === 200) {
-		const b = JSON.parse(body);
-		currentToken = b.access_token;
-		console.log('access_token: ', currentToken);
-	}
-});
-
-function rejectMessage(messageInfo, reason) {
-	console.log(`Rejected: ${reason}`, messageInfo);
-	const body = { 'sequenceNumber': messageInfo.sequenceNumber };
-	if (reason) {
-		body['reason'] = reason;
-	}
-	request.post(config.BASE_URL + '/v1/messages/' + messageInfo.message.id + '/reject',
-		{
-			'auth': {
-				'bearer': currentToken,
-			},
-			'body': JSON.stringify(body),
-		}, function(error, resp, rBody) {
-			if (error) {
-				console.error('error:', error);
-				console.log('resp: ', resp);
-				console.log('body: ', rBody);
-			}
-			console.log('Rejected!', messageInfo);
-		});
-}
-
-function approveMessage(messageInfo) {
-	console.log(messageInfo.message);
-	request.post(config.BASE_URL + '/v1/messages/' + messageInfo.message.id + '/approve',
-		{
-			'auth': {
-				'bearer': currentToken,
-			},
-			'body': JSON.stringify({ 'sequenceNumber': messageInfo.sequenceNumber }),
-		}, function(error, resp, rBody) {
-			if (error) {
-				console.error('error:', error);
-				console.log('resp: ', resp);
-				console.log('body: ', rBody);
-			}
-			console.log('Approved!', messageInfo);
-		});
-}
-
 app.post('/webhooks/messageHandler', (req, res) => {
 	const body = req.body;
 	console.log(body);
@@ -141,10 +91,11 @@ app.post('/webhooks/messageHandler', (req, res) => {
 				channel.send('Ping? Pong!');
 				break;
 			case 'com.hootsuite.messages.event.v1':
+				console.log(e.data);
 				request(config.BASE_URL + '/v1/messages/' + data.message.id,
 					{
 						'auth': {
-							'bearer': currentToken,
+							'bearer': getToken(e.data.organization.id),
 						},
 					}, function(error, resp, rbody) {
 						if (error) {console.error('error:', error);}
