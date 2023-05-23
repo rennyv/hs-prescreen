@@ -11,7 +11,7 @@ module.exports = {
 		if (message.reference) {
 			console.log('message:', message);
 			message.fetchReference().then((m) => {
-				const orgId = config.CHANNEL_ORG[m.channelId];
+				const orgId = process.env.ORG_ID;
 				if (hasMesssage(orgId, m.id)) {
 					rejectMessage(getMessage(orgId, m.id), message.content);
 					removeMessage(orgId, m.id);

@@ -10,7 +10,7 @@ module.exports = {
 		if (!user) { console.log('Empty user'); }
 		console.log('reaction:', reaction);
 		const message = reaction.message, emoji = reaction.emoji;
-		const orgId = config.CHANNEL_ORG[reaction.message.channelId];
+		const orgId = process.env.ORG_ID;
 		if (hasMesssage(orgId, message.id)) {
 			switch (emoji.name) {
 			case config.EMOJI.approved:

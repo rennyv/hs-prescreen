@@ -1,20 +1,22 @@
+require('dotenv').config();
+console.log(process.env);
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const request = require('request');
 const fs = require('node:fs');
 const path = require('node:path');
-const config = require('./config.json');
 const { Client, GatewayIntentBits } = require('discord.js');
 const { getToken } = require('./utils/hootsuite');
 const { addMessage } = require('./utils/discord');
 
-if (!config.BOT_TOKEN) {
+if (!process.env.BOT_TOKEN) {
 	console.log('DISCORD BOT token is missing!');
 }
-if (!config.CLIENT_ID) {
+if (!process.env.CLIENT_ID) {
 	console.log('HOOTSTUITE CLIENT ID is missing!');
 }
-if (!config.CLIENT_SECRET) {
+if (!process.env.CLIENT_SECRET) {
 	console.log('HOOTSTUITE SECRET is missing!');
 }
 
@@ -40,7 +42,7 @@ for (const file of eventFiles) {
 }
 
 // Login to Discord
-client.login(config.BOT_TOKEN);
+client.login(process.env.BOT_TOKEN);
 
 // set-up express
 const app = express();
@@ -56,7 +58,7 @@ app.get('/', (req, res) => {
 app.post('/webhooks/messageHandler', (req, res) => {
 	const body = req.body;
 	console.log(body);
-	const channel = client.channels.cache.get(config.DISCORD_CHANNEL);
+	const channel = client.channels.cache.get(process.env.DISCORD_CHANNEL);
 	if (body.constructor === Array) {
 		for (const e of body) {
 			const type = e.type;
@@ -67,7 +69,7 @@ app.post('/webhooks/messageHandler', (req, res) => {
 				break;
 			case 'com.hootsuite.messages.event.v1':
 				console.log(e.data);
-				request(config.BASE_URL + '/v1/messages/' + data.message.id,
+				request(process.env.BASE_URL + '/v1/messages/' + data.message.id,
 					{
 						'auth': {
 							'bearer': getToken(e.data.organization.id),
