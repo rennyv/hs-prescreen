@@ -8,6 +8,16 @@ const { Client, GatewayIntentBits } = require('discord.js');
 const { getToken } = require('./utils/hootsuite');
 const { addMessage } = require('./utils/discord');
 
+if (!config.BOT_TOKEN) {
+	console.log('DISCORD BOT token is missing!');
+}
+if (!config.CLIENT_ID) {
+	console.log('HOOTSTUITE CLIENT ID is missing!');
+}
+if (!config.CLIENT_SECRET) {
+	console.log('HOOTSTUITE SECRET is missing!');
+}
+
 const client = new Client({ intents: [
 	GatewayIntentBits.Guilds,
 	GatewayIntentBits.GuildMessages,
