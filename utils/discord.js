@@ -2,6 +2,7 @@ const messages = {};
 
 const getMessage = (orgId, messageId) => {
 	console.log(`getMessage: ${orgId}, ${messageId}`);
+	console.log('--Current Messages--', messages);
 	return messages[`${orgId},${messageId}`];
 };
 

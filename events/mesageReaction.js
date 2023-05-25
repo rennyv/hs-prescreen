@@ -8,7 +8,7 @@ module.exports = {
 	once: false,
 	execute(reaction, user) {
 		if (!user) { console.log('Empty user'); }
-		console.log('reaction:', reaction);
+		console.log('--reaction--');
 		const message = reaction.message, emoji = reaction.emoji;
 		const orgId = process.env.ORG_ID;
 		if (hasMesssage(orgId, message.id)) {

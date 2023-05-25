@@ -40,10 +40,10 @@ for (const file of eventFiles) {
 	}
 }
 
-// Login to Discord
+// // Login to Discord
 client.login(process.env.BOT_TOKEN);
 
-// set-up express
+// // set-up express
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -60,6 +60,7 @@ app.post('/webhooks/messageHandler', (req, res) => {
 	const channel = client.channels.cache.get(process.env.DISCORD_CHANNEL);
 	if (body.constructor === Array) {
 		for (const e of body) {
+			console.log('event:', e);
 			const type = e.type;
 			const data = e.data;
 			switch (type) {
@@ -67,7 +68,7 @@ app.post('/webhooks/messageHandler', (req, res) => {
 				channel.send('Ping? Pong!');
 				break;
 			case 'com.hootsuite.messages.event.v1':
-				console.log(e.data);
+				console.log('event data', e.data);
 				request(process.env.BASE_URL + '/v1/messages/' + data.message.id,
 					{
 						'auth': {
@@ -75,6 +76,7 @@ app.post('/webhooks/messageHandler', (req, res) => {
 						},
 					}, function(error, resp, rbody) {
 						if (error) {console.error('error:', error);}
+						console.log(rbody);
 						const b = JSON.parse(rbody).data[0];
 						channel.send(`${data.state} - ${b.sequenceNumber} - ${b.text}`).then((result) => {
 							console.log(data.message);

@@ -4,7 +4,7 @@ let currentToken = null;
 
 request.post(process.env.BASE_URL + '/oauth2/token', {
 	auth: { 'user': process.env.CLIENT_ID, 'pass': process.env.CLIENT_SECRET, 'sendImmediately': true },
-	form: { grant_type:'organization_app', organization_id: '1963819' },
+	form: { grant_type:'organization_app', organization_id: '688422' },
 }, function(error, response, body) {
 	if (error) {console.error('error:', error);}
 	if (response && response.statusCode === 200) {
@@ -14,7 +14,7 @@ request.post(process.env.BASE_URL + '/oauth2/token', {
 });
 
 const getToken = (orgId) => {
-	console.log(orgId);
+	console.log('get token: ', orgId);
 	return currentToken;
 };
 
