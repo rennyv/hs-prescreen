@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const request = require('request');
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const { getToken } = require('./utils/hootsuite');
 const { addMessage } = require('./utils/discord');
 
@@ -57,7 +57,7 @@ app.get('/', (req, res) => {
 app.post('/webhooks/messageHandler', (req, res) => {
 	const body = req.body;
 	console.log(body);
-	const channel = client.channels.cache.get(process.env.DISCORD_CHANNEL);
+	const channel = client.channels.cache.find(c => c.name === process.env.DISCORD_CHANNEL);
 	if (body.constructor === Array) {
 		for (const e of body) {
 			console.log('event:', e);
@@ -76,13 +76,30 @@ app.post('/webhooks/messageHandler', (req, res) => {
 						},
 					}, function(error, resp, rbody) {
 						if (error) {console.error('error:', error);}
-						console.log(rbody);
-						const b = JSON.parse(rbody).data[0];
-						channel.send(`${data.state} - ${b.sequenceNumber} - ${b.text}`).then((result) => {
-							console.log(data.message);
-							e.data['sequenceNumber'] = b.sequenceNumber;
-							addMessage(e.data.organization.id, result.id, e.data);
-						});
+						const messageObj = JSON.parse(rbody).data[0];
+						console.log(messageObj);
+						e.data['sequenceNumber'] = messageObj.sequenceNumber;
+						switch (data.state) {
+						case 'PENDING_APPROVAL':
+							console.log('rbody: ', rbody);
+							// eslint-disable-next-line no-case-declarations
+							const embedMessage = new EmbedBuilder()
+								.setColor(0x0099FF)
+								.setTitle(`Twitter Pending Approval Scheduled @ ${messageObj.scheduledSendTime}`)
+								.setAuthor({ name: messageObj.lastUpdatedByMember.id, iconURL: 'https://toppng.com/uploads/preview/twitter-bird-png-11536001205yu3qae5msc.png' })
+								.setDescription(messageObj.text)
+								.setTimestamp();
+							channel.send({ embeds: [embedMessage] }).then((result) => {
+								addMessage(e.data.organization.id, result.id, e.data);
+								console.log(data.message);
+							});
+							break;
+						default:
+							channel.send(`${data.state} - ${messageObj.sequenceNumber} - ${messageObj.text}`).then((result) => {
+								addMessage(e.data.organization.id, result.id, e.data);
+								console.log(data.message);
+							});
+						}
 					});
 				break;
 			default:
